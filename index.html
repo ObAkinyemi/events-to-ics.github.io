@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment to Calendar</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>📅 Assignment Translator</h1>
+    
+    <div class="top-section">
+        <div class="instructions">
+            <h3>How to use:</h3>
+            <ol>
+                <li>Export Excel (NOT Google Sheets) as <b>.CSV</b>.</li>
+                <li>Use columns: <b>Date</b>, <b>Class</b>, <b>Assignment type</b>.</li>
+                <li>Enter the <b>Year</b> and upload!</li>
+                <li>Excel will convert <b> DD/MM/YYYY FORMAT (02/03/2028) TO DD-MMM FORMAT (02-Mar)</b>, which is why you <b>MUST</b> use Excel!</li>
+            </ol>
+        </div>
+
+        <div class="example-area">
+            <h3>Required CSV Format:</h3>
+            <div id="tablePreview"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <label for="yearInput">School Year</label>
+        <input type="number" id="yearInput" value="2026">
+
+        <label for="csvFile">Upload CSV File</label>
+        <input type="file" id="csvFile" accept=".csv">
+        
+        <button onclick="convertFile()">Generate Calendar (.ics)</button>
+    </div>
+</div>
+
+    <script src="translator.js"></script>
+</body>
+
+</html>
