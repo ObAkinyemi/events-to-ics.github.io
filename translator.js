@@ -89,8 +89,10 @@ function processData(data, year) {
                     
                     // Generate a consistent ID based on the assignment data
                     // This prevents duplicates if you import the file twice!
-                    const uniqueID = `${className}-${assignmentType}@assignments`.replace(/\s/g, '');
-
+                    
+                    // NEW WAY (Includes the Row Number 'index' so it's always unique):
+                    const uniqueID = `${className}-${assignmentType}-${index}@assignments`.replace(/\s/g, '');
+                    
                     calendarContent += "BEGIN:VEVENT\r\n";
                     calendarContent += `UID:${uniqueID}\r\n`; // Keeps it unique
                     calendarContent += `DTSTART:${startString}\r\n`;
