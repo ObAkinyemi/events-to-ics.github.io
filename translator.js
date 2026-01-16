@@ -1,4 +1,4 @@
-
+// Note: We only need PapaParse now. We will build the ICS file manually.
 
 // This runs as soon as the page loads
 window.onload = function() {
@@ -33,85 +33,117 @@ Object.keys(results.data[0]).forEach(key => {
     
     document.getElementById('tablePreview').innerHTML = tableHtml;
   }
-  
-  // Keep your existing convertFile() and processData() functions below this...
 
-  // We'll use CDN links in the HTML to load the libraries.
-  // This function runs when the user clicks "Convert"
-  async function convertFile() {
-      const fileInput = document.getElementById('csvFile');
-      const yearInput = document.getElementById('yearInput').value;
-      
-      if (!fileInput.files[0]) {
-          alert("Please select a CSV file first!");
-          return;
-      }
-  
-      const file = fileInput.files[0];
-      
-      // 1. Read the CSV file
-      Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-              processData(results.data, yearInput);
-          }
-      });
-  }
-  
-function processData(data, year) {
+function convertFile() {
+    const yearInput = document.getElementById('yearInput').value;
+    const fileInput = document.getElementById('csvFile');
+
+    if (fileInput.files.length === 0) {
+        alert("Please upload a CSV file first!");
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            generateMajorEventsICS(results.data, yearInput);
+        }
+    });
+}
+
+function generateMajorEventsICS(csvData, year) {
+    const events = [];
+
     const monthMap = {
-        'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'apri': 4, 
-        'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 
-        'oct': 10, 'nov': 11, 'dec': 12
+        'jan': 1, 'january': 1,
+        'feb': 2, 'february': 2,
+        'mar': 3, 'march': 3,
+        'apr': 4, 'april': 4, 'apri': 4,
+        'may': 5,
+        'jun': 6, 'june': 6,
+        'jul': 7, 'july': 7,
+        'aug': 8, 'august': 8,
+        'sep': 9, 'sept': 9, 'september': 9,
+        'oct': 10, 'october': 10,
+        'nov': 11, 'november': 11,
+        'dec': 12, 'december': 12
     };
 
-    let calendarContent = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//My Assignment Calendar//EN\r\n";
-
-    // Helper to add a zero to numbers like "1" -> "01"
-    const pad = (n) => n < 10 ? '0' + n : n;
-
-    data.forEach(record => {
-        const rawDate = record['Date'];
+    // ADDED: 'index' is now the second argument here
+    csvData.forEach((record, index) => {
+        const rawDate = record['Date']; 
         const className = record['Class'];
         const assignmentType = record['Assignment type'];
 
         if (rawDate && className && assignmentType) {
-            const dateParts = rawDate.split('-');
+            const dateParts = rawDate.trim().split(/[- ]+/); 
+
             if (dateParts.length >= 2) {
                 const day = parseInt(dateParts[0]);
                 const monthStr = dateParts[1].toLowerCase();
                 const month = monthMap[monthStr];
+                const eventYear = parseInt(year);
 
-                if (day && month) {
-                    const startString = `${year}${pad(month)}${pad(day)}T080000`;
-                    const endString = `${year}${pad(month)}${pad(day)}T090000`;
+                if (eventYear && month && day) {
                     
-                    // Generate a consistent ID based on the assignment data
-                    // This prevents duplicates if you import the file twice!
-                    
-                    // NEW WAY (Includes the Row Number 'index' so it's always unique):
-                    const uniqueID = `${className}-${assignmentType}-${index}@assignments`.replace(/\s/g, '');
-                    
-                    calendarContent += "BEGIN:VEVENT\r\n";
-                    calendarContent += `UID:${uniqueID}\r\n`; // Keeps it unique
-                    calendarContent += `DTSTART:${startString}\r\n`;
-                    calendarContent += `DTEND:${endString}\r\n`;
-                    calendarContent += `SUMMARY:${className}: ${assignmentType}\r\n`;
-                    calendarContent += "END:VEVENT\r\n";
+                    // --- NEW CODE: Generate Unique ID ---
+                    // Format: YYYYMMDD-Class-Assignment-Index
+                    // We remove spaces from Class/Assignment to make the ID cleaner
+                    const cleanClass = className.replace(/\s+/g, '');
+                    const cleanAssignment = assignmentType.replace(/\s+/g, '');
+                    const uidString = `${eventYear}${month}${day}-${cleanClass}-${cleanAssignment}-${index}`;
+
+                    events.push({
+                        title: `${className}: ${assignmentType}`,
+                        description: `Assignment: ${assignmentType}`,
+                        startYear: eventYear,
+                        startMonth: month,
+                        startDay: day,
+                        startHour: 8,
+                        startMinute: 0,
+                        uid: uidString // Save the ID here
+                    });
                 }
             }
         }
     });
 
-    calendarContent += "END:VCALENDAR";
+    const icsContent = buildICSFile(events);
+    downloadFile('Major_Assignment_Events.ics', icsContent);
+}
 
-    // Trigger the download
-    const blob = new Blob([calendarContent], { type: 'text/calendar' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'Assignments.ics';
-    a.click();
-    window.URL.revokeObjectURL(url);
+// --- NEW HELPER FUNCTIONS ---
+
+// This manually writes the text for the calendar file
+function buildICSFile(events) {
+    let icsString = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//My Calendar Tool//EN\n";
+
+    events.forEach(event => {
+        const pad = (n) => n < 10 ? '0' + n : n;
+        const dateStr = `${event.startYear}${pad(event.startMonth)}${pad(event.startDay)}T${pad(event.startHour)}${pad(event.startMinute)}00`;
+        
+        icsString += "BEGIN:VEVENT\n";
+        icsString += `UID:${event.uid}\n`; // --- NEW CODE: Write the UID ---
+        icsString += `SUMMARY:${event.title}\n`;
+        icsString += `DESCRIPTION:${event.description}\n`;
+        icsString += `DTSTART:${dateStr}\n`;
+        icsString += `DTEND:${dateStr}\n`;
+        icsString += "END:VEVENT\n";
+    });
+
+    icsString += "END:VCALENDAR";
+    return icsString;
+}
+
+function downloadFile(filename, text) {
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/calendar;charset=utf-8,' + encodeURIComponent(text));
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
 }
