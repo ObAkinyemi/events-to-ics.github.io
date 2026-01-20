@@ -76,7 +76,7 @@ function generateMajorEventsICS(csvData, year) {
     csvData.forEach((record, index) => {
         const rawDate = record['Date']; 
         const className = record['Class'];
-        const assignmentType = record['Assignment type'];
+        const assignmentType = record['Assignment type'] || record['Assignment Type'] || record['AT'];
 
         if (rawDate && className && assignmentType) {
             const dateParts = rawDate.trim().split(/[- ]+/); 
